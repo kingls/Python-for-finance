@@ -1,0 +1,90 @@
+import pandas
+from math import *
+import math
+import numpy as np
+
+def std(list):
+    element = 0 
+    for item in list:
+        element = element + float((item**2)/( len(list)))
+    return math.sqrt(element)
+
+def phi(x):
+    #'Cumulative distribution function for the standard normal distribution'
+    return (1.0 + erf(x / sqrt(2.0))) / 2.0
+
+def calx(v_i,delta_p_i,sigma):
+    x = v_i * phi(delta_p_i/sigma)
+    return x
+
+df = pandas.read_table("data.txt").dropna()
+
+
+    
+high = df["high"].tolist()
+low = df["low"].tolist()
+vol = df["vol"].tolist()
+chg =df["chg"].tolist()
+date = df["date"].tolist()
+time = df["time"].tolist()
+sigma = std(chg) #calculate standard deviation
+totalvol = sum(vol)
+dateset = tuple(set(date))
+vpin=[]
+
+for eachdate in dateset:
+    dataslice = df[np.logical_not(df['date'] != eachdate)]
+    datevol = dataslice['vol'].sum()
+    vbs = datevol/50
+    
+    '''list to store results'''
+    delta_p_i = []
+    v_i = []
+    x=[]
+    
+    '''convert slice to list'''
+    highslice = dateslice["high"].tolist()
+    lowslice = dateslice["low"].tolist()
+    volslice = dateslice["vol"].tolist()
+    
+    '''generate basket'''
+    highbas=[]
+    lowbas=[]
+    volbas=[]
+    
+    '''start filling basket'''
+    for i in range(len(dateslice.index)):
+        highbas.append(highslice[i])
+        lowbas.append(lowslice[i])
+        volbas.append(volslice[i])
+        '''pop last element if vol exceeds.'''
+        if sum(volbas) > vbs:
+            v_i.append(sum(volbas[0:-1]))  
+            delta_p_i.append(abs(max(highbas)-min(lowbas)))
+            highbas = highbas[-1:] 
+            lowbas = lowbas[-1:]
+            volbas = volbas[-1:]
+    for i in range(len(v_i)):
+        x.append(calx(v_i[i],delta_p_i[i],sigma))
+    v_tau_b=sum(x)
+    dateitem= abs(2*v_tau_b - vbs)
+    vpin.append(dateitem/totalvol)
+    
+x = list(set(date))
+x.sort()
+print(len(x))
+print(len(vpin))
+
+import matplotlib.pyplot as plt
+import numpy as np
+ 
+p1= x
+p2= vpin
+ 
+#创建绘图图表对象，可以不显式创建，跟cv2中的cv2.namedWindow()用法差不多
+plt.figure('Draw')
+plt.plot(p1,p2)  # plot绘制折线图
+plt.draw()  # 显示绘图
+plt.pause(5)  #显示5秒
+plt.savefig("easyplot01.jpg")  #保存图象
+plt.close()   #关闭图表
